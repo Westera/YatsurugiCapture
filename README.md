@@ -1,7 +1,7 @@
 # YatsurugiCapture
 
-[![CodeQL](https://github.com/yourusername/YatsurugiCapture/workflows/CodeQL%20Security%20Scan/badge.svg)](https://github.com/yourusername/YatsurugiCapture/actions)
-[![Dependency Review](https://github.com/yourusername/YatsurugiCapture/workflows/Dependency%20Review/badge.svg)](https://github.com/yourusername/YatsurugiCapture/actions)
+[![CodeQL](https://github.com/Westera/YatsurugiCapture/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Westera/YatsurugiCapture/actions/workflows/codeql-analysis.yml)
+[![Dependency Review](https://github.com/Westera/YatsurugiCapture/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Westera/YatsurugiCapture/actions/workflows/dependency-review.yml)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 
 A Linux video capture application designed for capturing and displaying video from capture cards (like Elgato HD60+)
