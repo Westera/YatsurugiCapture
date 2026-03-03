@@ -378,7 +378,9 @@ Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) f
 
 ## License
 
-This project is provided as-is for educational and personal use.
+This project is licensed under the Apache License, Version 2.0. See the LICENSE file for details.
+
+SPDX-License-Identifier: Apache-2.0
 
 ## Acknowledgments
 
