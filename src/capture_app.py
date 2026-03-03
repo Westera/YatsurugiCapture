@@ -7,9 +7,20 @@ Captures video and displays it in a window for Discord screen sharing
 import sys
 from typing import Optional, Tuple
 import cv2
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QPushButton, QLabel, QComboBox,
-                             QStatusBar, QFileDialog, QCheckBox, QToolTip)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+    QComboBox,
+    QStatusBar,
+    QFileDialog,
+    QCheckBox,
+    QToolTip,
+)
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QImage, QPixmap, QFont
 import subprocess
@@ -53,7 +64,7 @@ class CaptureWindow(QMainWindow):
         """)
 
         # Set tooltip font
-        QToolTip.setFont(QFont('SansSerif', 10))
+        QToolTip.setFont(QFont("SansSerif", 10))
 
         # Central widget
         central_widget = QWidget()
@@ -97,13 +108,9 @@ class CaptureWindow(QMainWindow):
         row1_layout.addWidget(res_label)
 
         self.resolution_combo = QComboBox()
-        self.resolution_combo.addItems([
-            "3840x2160 (4K)",
-            "2560x1440 (2K)",
-            "1920x1080 (1080p)",
-            "1280x720 (720p)",
-            "720x480 (480p)"
-        ])
+        self.resolution_combo.addItems(
+            ["3840x2160 (4K)", "2560x1440 (2K)", "1920x1080 (1080p)", "1280x720 (720p)", "720x480 (480p)"]
+        )
         self.resolution_combo.setCurrentIndex(2)
         self.resolution_combo.setToolTip("Set the capture resolution - higher resolutions require more system resources")
         self.resolution_combo.setStatusTip("Set the capture resolution - higher resolutions require more system resources")
@@ -155,7 +162,9 @@ class CaptureWindow(QMainWindow):
         self.borderless_btn = QPushButton("Toggle Borderless")
         self.borderless_btn.clicked.connect(self.toggle_borderless)
         self.borderless_btn.setToolTip("Toggle borderless mode for clean streaming (double-click video or press Esc to exit)")
-        self.borderless_btn.setStatusTip("Toggle borderless mode for clean streaming (double-click video or press Esc to exit)")
+        self.borderless_btn.setStatusTip(
+            "Toggle borderless mode for clean streaming (double-click video or press Esc to exit)"
+        )
         row2_layout.addWidget(self.borderless_btn)
 
         row2_layout.addStretch()
@@ -172,18 +181,17 @@ class CaptureWindow(QMainWindow):
         """Detect available V4L2 video devices"""
         try:
             # List video devices
-            result = subprocess.run(['v4l2-ctl', '--list-devices'],
-                                  capture_output=True, text=True)
+            result = subprocess.run(["v4l2-ctl", "--list-devices"], capture_output=True, text=True)
 
             devices = []
             current_device = None
 
-            for line in result.stdout.split('\n'):
+            for line in result.stdout.split("\n"):
                 # Device name line (doesn't start with whitespace)
                 if line and not line[0].isspace():
-                    current_device = line.strip().rstrip(':')
+                    current_device = line.strip().rstrip(":")
                 # Device path line (starts with whitespace)
-                elif line.strip().startswith('/dev/video'):
+                elif line.strip().startswith("/dev/video"):
                     device_path = line.strip()
                     if current_device:
                         devices.append(f"{current_device} ({device_path})")
@@ -232,7 +240,7 @@ class CaptureWindow(QMainWindow):
     def get_device_path(self) -> Optional[str]:
         """Extract device path from combo box selection"""
         text = self.device_combo.currentText()
-        match = re.search(r'/dev/video\d+', text)
+        match = re.search(r"/dev/video\d+", text)
         if match:
             return match.group(0)
         return None
@@ -242,7 +250,7 @@ class CaptureWindow(QMainWindow):
         text = self.audio_combo.currentText()
         if "None" in text or "No audio" in text:
             return None
-        match = re.search(r'ID: (\d+)', text)
+        match = re.search(r"ID: (\d+)", text)
         if match:
             return int(match.group(1))
         return None
@@ -289,7 +297,7 @@ class CaptureWindow(QMainWindow):
             fps = int(self.fps_combo.currentText())
 
             # Set MJPEG format FIRST for better performance and quality
-            self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
+            self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
 
             # Then set resolution and FPS
             self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -314,7 +322,7 @@ class CaptureWindow(QMainWindow):
             self.record_btn.setEnabled(True)
 
             # Update window title with capture source
-            device_name = self.device_combo.currentText().split('(')[0].strip()
+            device_name = self.device_combo.currentText().split("(")[0].strip()
             self.setWindowTitle(f"YatsurugiCapture - {device_name}")
 
             self.status_bar.showMessage(f"Capturing from {device_path} at {width}x{height}@{fps}fps")
@@ -388,10 +396,7 @@ class CaptureWindow(QMainWindow):
             # Generate filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename, _ = QFileDialog.getSaveFileName(
-                self,
-                "Save Recording",
-                f"capture_{timestamp}.mp4",
-                "Video Files (*.mp4 *.avi *.mkv)"
+                self, "Save Recording", f"capture_{timestamp}.mp4", "Video Files (*.mp4 *.avi *.mkv)"
             )
 
             if not filename:
@@ -402,22 +407,22 @@ class CaptureWindow(QMainWindow):
             fps = int(self.fps_combo.currentText())
 
             # Use best available codec based on file extension
-            ext = filename.lower().split('.')[-1]
-            if ext == 'mkv':
+            ext = filename.lower().split(".")[-1]
+            if ext == "mkv":
                 # For MKV, try H264 first (best quality/compression)
-                fourcc = cv2.VideoWriter_fourcc(*'H264')
-            elif ext == 'avi':
+                fourcc = cv2.VideoWriter_fourcc(*"H264")
+            elif ext == "avi":
                 # For AVI, use MJPEG (fast, lossless-like)
-                fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+                fourcc = cv2.VideoWriter_fourcc(*"MJPG")
             else:  # mp4 or default
                 # For MP4, try H264, fallback to mp4v
-                fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H264 variant
+                fourcc = cv2.VideoWriter_fourcc(*"avc1")  # H264 variant
 
             self.video_writer = cv2.VideoWriter(filename, fourcc, fps, (width, height))
 
             # If failed, try fallback codec
             if not self.video_writer.isOpened():
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
                 self.video_writer = cv2.VideoWriter(filename, fourcc, fps, (width, height))
 
             if self.video_writer.isOpened():
@@ -466,18 +471,10 @@ class CaptureWindow(QMainWindow):
                 label_size = self.video_label.size()
                 if w > label_size.width() * 1.5 or h > label_size.height() * 1.5:
                     # Large downscale - use smooth transformation for quality
-                    scaled_pixmap = QPixmap.fromImage(qt_image).scaled(
-                        label_size,
-                        Qt.KeepAspectRatio,
-                        Qt.SmoothTransformation
-                    )
+                    scaled_pixmap = QPixmap.fromImage(qt_image).scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 else:
                     # Small or no scaling - use fast transformation
-                    scaled_pixmap = QPixmap.fromImage(qt_image).scaled(
-                        label_size,
-                        Qt.KeepAspectRatio,
-                        Qt.FastTransformation
-                    )
+                    scaled_pixmap = QPixmap.fromImage(qt_image).scaled(label_size, Qt.KeepAspectRatio, Qt.FastTransformation)
 
                 self.video_label.setPixmap(scaled_pixmap)
             else:
@@ -523,5 +520,5 @@ def main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
