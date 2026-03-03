@@ -5,7 +5,7 @@ Tests can run without actual audio hardware
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from audio_handler import AudioHandler
 
 

@@ -5,7 +5,7 @@ Tests can run without actual capture hardware
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import sys
 import os
 
