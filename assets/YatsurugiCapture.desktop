@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=YatsurugiCapture
+Comment=Video capture application for capture cards and webcams
+Exec=/usr/local/bin/YatsurugiCapture
+Icon=yatsurugi-capture
+Terminal=false
+Categories=AudioVideo;Video;Recorder;
+Keywords=capture;video;recording;streaming;elgato;
+StartupNotify=true

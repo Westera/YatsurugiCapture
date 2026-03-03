@@ -1,0 +1,5 @@
+# Runtime dependencies for YatsurugiCapture
+opencv-python>=4.8.0
+PyQt5>=5.15.0,<5.15.11  # Pin to avoid Windows DLL issues with 5.15.11
+pyaudio>=0.2.13
+numpy>=1.24.0

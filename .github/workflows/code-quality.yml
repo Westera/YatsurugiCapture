@@ -1,0 +1,42 @@
+# Code quality checks - linting and import validation
+name: Code Quality
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements-dev.txt
+
+    - name: Check for unused imports
+      run: |
+        echo "Checking for unused imports..."
+        autoflake --check --remove-all-unused-imports --recursive src/ tests/
+
+    - name: Run flake8
+      run: |
+        echo "Running flake8..."
+        flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Check code formatting with black
+      run: |
+        echo "Checking code formatting..."
+        black --check --diff src/ tests/
