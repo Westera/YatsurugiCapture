@@ -5,12 +5,12 @@ Tests can run without actual capture hardware
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import sys
 import os
 
 # Set Qt to use offscreen platform for headless environments (CI/CD)
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
@@ -108,16 +108,14 @@ class TestCaptureWindow(unittest.TestCase):
 
     def test_fps_options(self):
         """Test FPS combo box has correct options"""
-        fps_options = [self.window.fps_combo.itemText(i)
-                      for i in range(self.window.fps_combo.count())]
+        fps_options = [self.window.fps_combo.itemText(i) for i in range(self.window.fps_combo.count())]
         self.assertIn("60", fps_options)
         self.assertIn("30", fps_options)
         self.assertIn("25", fps_options)
 
     def test_resolution_options(self):
         """Test resolution combo box has correct options"""
-        res_options = [self.window.resolution_combo.itemText(i)
-                      for i in range(self.window.resolution_combo.count())]
+        res_options = [self.window.resolution_combo.itemText(i) for i in range(self.window.resolution_combo.count())]
         self.assertEqual(len(res_options), 5)
         self.assertTrue(any("4K" in opt for opt in res_options))
         self.assertTrue(any("2K" in opt for opt in res_options))
@@ -160,7 +158,7 @@ class TestCaptureWindow(unittest.TestCase):
         self.assertTrue(self.window.control_widget.isVisible())
         self.assertTrue(self.window.status_bar.isVisible())
 
-    @patch('capture_app.subprocess.run')
+    @patch("capture_app.subprocess.run")
     def test_device_detection_success(self, mock_run):
         """Test successful device detection"""
         # Mock v4l2-ctl output
@@ -181,7 +179,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.assertGreater(window.device_combo.count(), 0)
         window.close()
 
-    @patch('capture_app.subprocess.run')
+    @patch("capture_app.subprocess.run")
     def test_device_detection_no_devices(self, mock_run):
         """Test device detection with no devices found"""
         mock_result = Mock()
@@ -192,7 +190,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.assertEqual(window.device_combo.itemText(0), "No devices found")
         window.close()
 
-    @patch('capture_app.subprocess.run')
+    @patch("capture_app.subprocess.run")
     def test_device_detection_v4l2_not_found(self, mock_run):
         """Test device detection when v4l2-ctl is not installed"""
         mock_run.side_effect = FileNotFoundError()
@@ -201,7 +199,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.assertEqual(window.device_combo.itemText(0), "v4l2-ctl not found")
         window.close()
 
-    @patch('cv2.VideoCapture')
+    @patch("cv2.VideoCapture")
     def test_start_capture_no_device_selected(self, mock_capture):
         """Test starting capture with no valid device"""
         self.window.device_combo.clear()
@@ -213,7 +211,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.assertIsNone(self.window.capture)
         self.assertFalse(self.window.is_capturing)
 
-    @patch('cv2.VideoCapture')
+    @patch("cv2.VideoCapture")
     def test_start_capture_device_fails_to_open(self, mock_capture_class):
         """Test handling of device that fails to open"""
         # Mock VideoCapture that fails to open
@@ -229,7 +227,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         # Should not start capturing
         self.assertFalse(self.window.is_capturing)
 
-    @patch('cv2.VideoCapture')
+    @patch("cv2.VideoCapture")
     def test_start_capture_success(self, mock_capture_class):
         """Test successful capture start"""
         # Mock VideoCapture that opens successfully
@@ -276,7 +274,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         mock_capture = Mock()
         mock_capture.isOpened.return_value = True
 
-        with patch('cv2.VideoCapture', return_value=mock_capture):
+        with patch("cv2.VideoCapture", return_value=mock_capture):
             self.window.device_combo.clear()
             self.window.device_combo.addItem("Test Device (/dev/video0)")
             self.window.start_capture()
@@ -307,7 +305,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         mock_capture = Mock()
         mock_capture.isOpened.return_value = True
 
-        with patch('cv2.VideoCapture', return_value=mock_capture):
+        with patch("cv2.VideoCapture", return_value=mock_capture):
             self.window.device_combo.clear()
             self.window.device_combo.addItem("Elgato HD60+ (/dev/video0)")
 
@@ -321,7 +319,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         """Test that record button is disabled when not capturing"""
         self.assertFalse(self.window.record_btn.isEnabled())
 
-    @patch('cv2.VideoWriter')
+    @patch("cv2.VideoWriter")
     def test_recording_requires_active_capture(self, mock_writer):
         """Test that recording can only start when capturing"""
         self.window.is_capturing = False
@@ -332,8 +330,8 @@ Integrated Camera (usb-0000:00:14.0-2):
         mock_writer.assert_not_called()
         self.assertFalse(self.window.is_recording)
 
-    @patch('capture_app.QFileDialog.getSaveFileName')
-    @patch('cv2.VideoWriter')
+    @patch("capture_app.QFileDialog.getSaveFileName")
+    @patch("cv2.VideoWriter")
     def test_start_recording_success(self, mock_writer_class, mock_dialog):
         """Test successful recording start"""
         # Mock file dialog
@@ -354,7 +352,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.assertEqual(self.window.record_btn.text(), "Stop Recording")
         mock_writer_class.assert_called_once()
 
-    @patch('capture_app.QFileDialog.getSaveFileName')
+    @patch("capture_app.QFileDialog.getSaveFileName")
     def test_start_recording_cancelled(self, mock_dialog):
         """Test recording start when user cancels file dialog"""
         # Mock cancelled dialog
@@ -388,7 +386,7 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.window.audio_combo.clear()
         self.window.audio_combo.addItem("Test Device (ID: 0)")
 
-        with patch.object(self.window.audio_handler, 'start_passthrough', return_value=True):
+        with patch.object(self.window.audio_handler, "start_passthrough", return_value=True):
             self.window.audio_passthrough_check.setChecked(True)
 
             self.window.audio_handler.start_passthrough.assert_called_once_with(input_device_index=0)
@@ -399,11 +397,11 @@ Integrated Camera (usb-0000:00:14.0-2):
         self.window.audio_combo.clear()
         self.window.audio_combo.addItem("Test Device (ID: 0)")
 
-        with patch.object(self.window.audio_handler, 'start_passthrough', return_value=True):
+        with patch.object(self.window.audio_handler, "start_passthrough", return_value=True):
             self.window.audio_passthrough_check.setChecked(True)
 
         # Now test unchecking it
-        with patch.object(self.window.audio_handler, 'stop_passthrough'):
+        with patch.object(self.window.audio_handler, "stop_passthrough"):
             self.window.audio_passthrough_check.setChecked(False)
 
             self.window.audio_handler.stop_passthrough.assert_called_once()
@@ -470,5 +468,5 @@ class TestCaptureWindowIntegration(unittest.TestCase):
         self.assertFalse(self.window.status_bar.isVisible())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

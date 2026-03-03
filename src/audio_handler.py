@@ -20,13 +20,15 @@ class AudioHandler:
         devices = []
         for i in range(self.audio.get_device_count()):
             info = self.audio.get_device_info_by_index(i)
-            if info['maxInputChannels'] > 0:
-                devices.append({
-                    'index': i,
-                    'name': info['name'],
-                    'channels': info['maxInputChannels'],
-                    'sample_rate': int(info['defaultSampleRate'])
-                })
+            if info["maxInputChannels"] > 0:
+                devices.append(
+                    {
+                        "index": i,
+                        "name": info["name"],
+                        "channels": info["maxInputChannels"],
+                        "sample_rate": int(info["defaultSampleRate"]),
+                    }
+                )
         return devices
 
     def find_capture_card_audio(self):
@@ -34,13 +36,13 @@ class AudioHandler:
         devices = self.list_devices()
 
         # Look for common Elgato device names
-        keywords = ['elgato', 'hd60', 'capture', 'game capture']
+        keywords = ["elgato", "hd60", "capture", "game capture"]
 
         for device in devices:
-            name_lower = device['name'].lower()
+            name_lower = device["name"].lower()
             for keyword in keywords:
                 if keyword in name_lower:
-                    return device['index']
+                    return device["index"]
 
         # If not found, return None
         return None
@@ -67,7 +69,7 @@ class AudioHandler:
                 output=True,
                 input_device_index=input_device_index,
                 frames_per_buffer=1024,
-                stream_callback=self._audio_callback
+                stream_callback=self._audio_callback,
             )
 
             self.stream.start_stream()
@@ -95,17 +97,13 @@ class AudioHandler:
     def get_pulse_sources(self):
         """Get PulseAudio sources (for systems using PulseAudio)"""
         try:
-            result = subprocess.run(['pactl', 'list', 'short', 'sources'],
-                                  capture_output=True, text=True)
+            result = subprocess.run(["pactl", "list", "short", "sources"], capture_output=True, text=True)
             sources = []
-            for line in result.stdout.split('\n'):
+            for line in result.stdout.split("\n"):
                 if line.strip():
-                    parts = line.split('\t')
+                    parts = line.split("\t")
                     if len(parts) >= 2:
-                        sources.append({
-                            'index': parts[0],
-                            'name': parts[1]
-                        })
+                        sources.append({"index": parts[0], "name": parts[1]})
             return sources
         except:
             return []
