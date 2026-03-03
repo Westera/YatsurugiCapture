@@ -26,7 +26,7 @@ updates:
           - "minor"
           - "patch"
     # Allow major version updates separately for review
-    ignore:
+    ignore: []
       # Uncomment to ignore specific packages if needed
       # - dependency-name: "package-name"
       #   versions: ["x.x.x"]
