@@ -1,11 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
-import os
 import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), 'src'))
 
 block_cipher = None
-
-# Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 a = Analysis(
     ['src/capture_app.py'],
