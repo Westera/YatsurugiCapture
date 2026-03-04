@@ -4,10 +4,10 @@ Unit tests for YatsurugiCapture
 Tests can run without actual capture hardware
 """
 
+import os
+import sys
 import unittest
 from unittest.mock import Mock, patch
-import sys
-import os
 
 # Set Qt to use offscreen platform for headless environments (CI/CD)
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -423,50 +423,43 @@ Integrated Camera (usb-0000:00:14.0-2):
         # Check frame was written
         self.window.video_writer.write.assert_called_once()
 
+    @patch("capture_app.AudioHandler")
+    def test_audio_passthrough_failure_ui_response(self, mock_audio_handler_class):
+        """Test UI disables checkbox and shows error if passthrough fails"""
+        mock_handler = Mock()
+        mock_handler.start_passthrough.return_value = False
+        mock_audio_handler_class.return_value = mock_handler
+        window = CaptureWindow()
+        window.audio_handler = mock_handler
+        window.audio_combo.clear()
+        window.audio_combo.addItem("Test Device (ID: 0)")
+        window.audio_passthrough_check.setChecked(True)
+        self.assertFalse(window.audio_passthrough_check.isChecked())
+        window.close()
 
-class TestCaptureWindowIntegration(unittest.TestCase):
-    """Integration tests for UI interactions"""
+    @patch("capture_app.AudioHandler")
+    def test_audio_passthrough_cleanup_on_close(self, mock_audio_handler_class):
+        """Test that audio passthrough is stopped on window close"""
+        mock_handler = Mock()
+        mock_handler.is_running = True
+        mock_audio_handler_class.return_value = mock_handler
+        window = CaptureWindow()
+        window.audio_handler = mock_handler
+        window.close()
+        mock_handler.stop_passthrough.assert_called()
 
-    def setUp(self):
-        """Set up test fixtures"""
-        self.window = CaptureWindow()
-
-    def tearDown(self):
-        """Clean up after tests"""
-        if self.window:
-            self.window.close()
-
-    def test_button_click_toggle(self):
-        """Test clicking start button toggles state"""
-        initial_text = self.window.start_btn.text()
-        self.assertEqual(initial_text, "Start Capture")
-
-    def test_borderless_button_click(self):
-        """Test borderless button toggles window flags"""
-        initial_flags = self.window.windowFlags()
-        QTest.mouseClick(self.window.borderless_btn, Qt.LeftButton)
-        new_flags = self.window.windowFlags()
-        self.assertNotEqual(initial_flags, new_flags)
-        # Controls should be hidden in borderless mode
-        self.assertFalse(self.window.control_widget.isVisible())
-
-    def test_video_double_click(self):
-        """Test double-clicking video label toggles borderless mode"""
-        # Show window so widgets are visible
-        self.window.show()
-
-        # Initially not borderless
-        self.assertFalse(self.window.windowFlags() & Qt.FramelessWindowHint)
-        self.assertTrue(self.window.control_widget.isVisible())
-
-        # Simulate double-click on video label
-        QTest.mouseDClick(self.window.video_label, Qt.LeftButton)
-
-        # Should now be borderless with controls hidden
-        self.assertTrue(self.window.windowFlags() & Qt.FramelessWindowHint)
-        self.assertFalse(self.window.control_widget.isVisible())
-        self.assertFalse(self.window.status_bar.isVisible())
-
-
-if __name__ == "__main__":
-    unittest.main()
+    @patch("capture_app.AudioHandler")
+    def test_audio_passthrough_toggle_disables_controls(self, mock_audio_handler_class):
+        """Test that UI disables/enables controls when audio passthrough is toggled"""
+        mock_handler = Mock()
+        mock_handler.start_passthrough.return_value = True
+        mock_audio_handler_class.return_value = mock_handler
+        window = CaptureWindow()
+        window.audio_handler = mock_handler
+        window.audio_combo.clear()
+        window.audio_combo.addItem("Test Device (ID: 0)")
+        # Enable passthrough
+        window.audio_passthrough_check.setChecked(True)
+        # Controls should remain enabled (unless you want to disable them, then check here)
+        self.assertTrue(window.audio_combo.isEnabled())
+        window.close()

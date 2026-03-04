@@ -4,9 +4,15 @@ YatsurugiCapture - Video Capture Application for Linux
 Captures video and displays it in a window for Discord screen sharing
 """
 
+import re
+import subprocess
 import sys
+from datetime import datetime
 from typing import Optional, Tuple
+
 import cv2
+from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QImage, QPixmap, QFont
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -21,11 +27,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QToolTip,
 )
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QImage, QPixmap, QFont
-import subprocess
-import re
-from datetime import datetime
+
 from audio_handler import AudioHandler
 
 
@@ -509,6 +511,7 @@ class CaptureWindow(QMainWindow):
     def closeEvent(self, event):
         """Clean up when closing the window"""
         self.stop_capture()
+        self.audio_handler.stop_passthrough()  # Always explicitly stop passthrough
         self.audio_handler.cleanup()
         event.accept()
 

@@ -4,8 +4,10 @@ Audio capture and passthrough for Elgato HD60+
 Handles ALSA audio input and routes it to default output
 """
 
-import pyaudio
 import subprocess
+import threading
+
+import pyaudio
 
 
 class AudioHandler:
@@ -48,7 +50,7 @@ class AudioHandler:
         return None
 
     def start_passthrough(self, input_device_index=None, channels=2, rate=48000):
-        """Start audio passthrough from input to output"""
+        """Start audio passthrough from input to output (default system output)"""
         if self.is_running:
             return False
 
@@ -60,39 +62,71 @@ class AudioHandler:
                     print("Could not find capture card audio device")
                     return False
 
-            # Open input stream
-            self.stream = self.audio.open(
+            # Find default output device
+            output_device_index = None
+            for i in range(self.audio.get_device_count()):
+                info = self.audio.get_device_info_by_index(i)
+                if info["maxOutputChannels"] > 0 and info.get("defaultOutputDevice", False):
+                    output_device_index = i
+                    break
+            # If not found, fallback to first output device
+            if output_device_index is None:
+                for i in range(self.audio.get_device_count()):
+                    info = self.audio.get_device_info_by_index(i)
+                    if info["maxOutputChannels"] > 0:
+                        output_device_index = i
+                        break
+            if output_device_index is None:
+                print("No output device found for audio passthrough")
+                return False
+
+            self.input_stream = self.audio.open(
                 format=pyaudio.paInt16,
                 channels=channels,
                 rate=rate,
                 input=True,
-                output=True,
                 input_device_index=input_device_index,
                 frames_per_buffer=1024,
-                stream_callback=self._audio_callback,
             )
-
-            self.stream.start_stream()
+            self.output_stream = self.audio.open(
+                format=pyaudio.paInt16,
+                channels=channels,
+                rate=rate,
+                output=True,
+                output_device_index=output_device_index,
+                frames_per_buffer=1024,
+            )
             self.is_running = True
-
+            self.thread = threading.Thread(target=self._passthrough_loop, daemon=True)
+            self.thread.start()
             return True
-
         except Exception as e:
             print(f"Error starting audio passthrough: {e}")
+            self.is_running = False
             return False
 
-    def _audio_callback(self, in_data, frame_count, time_info, status):
-        """Callback to pass audio from input to output"""
-        return (in_data, pyaudio.paContinue)
+    def _passthrough_loop(self):
+        try:
+            while self.is_running:
+                data = self.input_stream.read(1024, exception_on_overflow=False)
+                self.output_stream.write(data)
+        except Exception as e:
+            print(f"Audio passthrough loop error: {e}")
+        finally:
+            self.is_running = False
 
     def stop_passthrough(self):
         """Stop audio passthrough"""
-        if self.stream:
-            self.stream.stop_stream()
-            self.stream.close()
-            self.stream = None
-
         self.is_running = False
+        if hasattr(self, "input_stream") and self.input_stream:
+            self.input_stream.stop_stream()
+            self.input_stream.close()
+            self.input_stream = None
+        if hasattr(self, "output_stream") and self.output_stream:
+            self.output_stream.stop_stream()
+            self.output_stream.close()
+            self.output_stream = None
+        self.thread = None
 
     def get_pulse_sources(self):
         """Get PulseAudio sources (for systems using PulseAudio)"""
