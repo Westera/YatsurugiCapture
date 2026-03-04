@@ -52,8 +52,7 @@ class CaptureWindow(QMainWindow):
         self.setGeometry(100, 100, 1280, 720)
 
         # Set global stylesheet with tooltip styling
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             QMainWindow {
                 background-color: black;
             }
@@ -64,8 +63,7 @@ class CaptureWindow(QMainWindow):
                 padding: 3px;
                 font-size: 10pt;
             }
-        """
-        )
+        """)
 
         # Set tooltip font
         QToolTip.setFont(QFont("SansSerif", 10))
