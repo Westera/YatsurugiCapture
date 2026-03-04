@@ -4,9 +4,15 @@ YatsurugiCapture - Video Capture Application for Linux
 Captures video and displays it in a window for Discord screen sharing
 """
 
+import re
+import subprocess
 import sys
+from datetime import datetime
 from typing import Optional, Tuple
+
 import cv2
+from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QImage, QPixmap, QFont
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -21,11 +27,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QToolTip,
 )
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QImage, QPixmap, QFont
-import subprocess
-import re
-from datetime import datetime
+
 from audio_handler import AudioHandler
 
 
@@ -50,7 +52,8 @@ class CaptureWindow(QMainWindow):
         self.setGeometry(100, 100, 1280, 720)
 
         # Set global stylesheet with tooltip styling
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QMainWindow {
                 background-color: black;
             }
@@ -61,7 +64,8 @@ class CaptureWindow(QMainWindow):
                 padding: 3px;
                 font-size: 10pt;
             }
-        """)
+        """
+        )
 
         # Set tooltip font
         QToolTip.setFont(QFont("SansSerif", 10))

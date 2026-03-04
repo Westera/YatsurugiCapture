@@ -4,9 +4,10 @@ Audio capture and passthrough for Elgato HD60+
 Handles ALSA audio input and routes it to default output
 """
 
-import pyaudio
 import subprocess
 import threading
+
+import pyaudio
 
 
 class AudioHandler:
@@ -117,11 +118,11 @@ class AudioHandler:
     def stop_passthrough(self):
         """Stop audio passthrough"""
         self.is_running = False
-        if hasattr(self, 'input_stream') and self.input_stream:
+        if hasattr(self, "input_stream") and self.input_stream:
             self.input_stream.stop_stream()
             self.input_stream.close()
             self.input_stream = None
-        if hasattr(self, 'output_stream') and self.output_stream:
+        if hasattr(self, "output_stream") and self.output_stream:
             self.output_stream.stop_stream()
             self.output_stream.close()
             self.output_stream = None

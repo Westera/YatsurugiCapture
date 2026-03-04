@@ -4,10 +4,10 @@ Unit tests for YatsurugiCapture
 Tests can run without actual capture hardware
 """
 
+import os
+import sys
 import unittest
 from unittest.mock import Mock, patch
-import sys
-import os
 
 # Set Qt to use offscreen platform for headless environments (CI/CD)
 os.environ["QT_QPA_PLATFORM"] = "offscreen"

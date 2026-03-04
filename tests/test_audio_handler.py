@@ -6,6 +6,7 @@ Tests can run without actual audio hardware
 
 import unittest
 from unittest.mock import Mock, patch
+
 from audio_handler import AudioHandler
 
 
@@ -27,8 +28,8 @@ class TestAudioHandler(unittest.TestCase):
     def test_initialization(self):
         """Test that AudioHandler initializes correctly"""
         self.assertIsNotNone(self.handler)
-        self.assertIsNone(getattr(self.handler, 'input_stream', None))
-        self.assertIsNone(getattr(self.handler, 'output_stream', None))
+        self.assertIsNone(getattr(self.handler, "input_stream", None))
+        self.assertIsNone(getattr(self.handler, "output_stream", None))
         self.assertFalse(self.handler.is_running)
         self.assertIsNone(self.handler.thread)
 
@@ -99,16 +100,24 @@ class TestAudioHandler(unittest.TestCase):
         mock_audio = Mock()
         mock_input_stream = Mock()
         mock_output_stream = Mock()
+
         def open_side_effect(*args, **kwargs):
             if kwargs.get("input"):
                 return mock_input_stream
             if kwargs.get("output"):
                 return mock_output_stream
+
         mock_audio.open.side_effect = open_side_effect
         mock_audio.get_device_count.return_value = 2
         mock_audio.get_device_info_by_index.side_effect = [
             {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
-            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+            {
+                "name": "Speakers",
+                "maxInputChannels": 0,
+                "maxOutputChannels": 2,
+                "defaultSampleRate": 48000.0,
+                "defaultOutputDevice": True,
+            },
         ]
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
@@ -139,19 +148,29 @@ class TestAudioHandler(unittest.TestCase):
         mock_audio = Mock()
         mock_input_stream = Mock()
         mock_output_stream = Mock()
+
         # Provide both input and output devices with correct properties
         def get_device_info_by_index(idx):
             if idx == 0:
                 return {"name": "Elgato Capture", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0}
             if idx == 1:
-                return {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True}
+                return {
+                    "name": "Speakers",
+                    "maxInputChannels": 0,
+                    "maxOutputChannels": 2,
+                    "defaultSampleRate": 48000.0,
+                    "defaultOutputDevice": True,
+                }
+
         mock_audio.get_device_count.return_value = 2
         mock_audio.get_device_info_by_index.side_effect = get_device_info_by_index
+
         def open_side_effect(*args, **kwargs):
             if kwargs.get("input"):
                 return mock_input_stream
             if kwargs.get("output"):
                 return mock_output_stream
+
         mock_audio.open.side_effect = open_side_effect
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
@@ -298,14 +317,22 @@ class TestAudioHandler(unittest.TestCase):
         mock_audio.get_device_count.return_value = 2
         mock_audio.get_device_info_by_index.side_effect = [
             {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
-            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+            {
+                "name": "Speakers",
+                "maxInputChannels": 0,
+                "maxOutputChannels": 2,
+                "defaultSampleRate": 48000.0,
+                "defaultOutputDevice": True,
+            },
         ]
+
         # Simulate open returns
         def open_side_effect(*args, **kwargs):
             if kwargs.get("input"):
                 return mock_input_stream
             if kwargs.get("output"):
                 return mock_output_stream
+
         mock_audio.open.side_effect = open_side_effect
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
@@ -321,7 +348,12 @@ class TestAudioHandler(unittest.TestCase):
         """Test passthrough fails if no output device is found"""
         mock_audio = Mock()
         mock_audio.get_device_count.return_value = 1
-        mock_audio.get_device_info_by_index.return_value = {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0}
+        mock_audio.get_device_info_by_index.return_value = {
+            "name": "Elgato HD60X",
+            "maxInputChannels": 2,
+            "maxOutputChannels": 0,
+            "defaultSampleRate": 48000.0,
+        }
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
         result = handler.start_passthrough(input_device_index=0)
@@ -335,13 +367,21 @@ class TestAudioHandler(unittest.TestCase):
         mock_audio.get_device_count.return_value = 2
         mock_audio.get_device_info_by_index.side_effect = [
             {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
-            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+            {
+                "name": "Speakers",
+                "maxInputChannels": 0,
+                "maxOutputChannels": 2,
+                "defaultSampleRate": 48000.0,
+                "defaultOutputDevice": True,
+            },
         ]
+
         def open_side_effect(*args, **kwargs):
             if kwargs.get("input"):
                 return Mock()
             if kwargs.get("output"):
                 raise Exception("Output open failed")
+
         mock_audio.open.side_effect = open_side_effect
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
@@ -359,18 +399,27 @@ class TestAudioHandler(unittest.TestCase):
         mock_audio.get_device_count.return_value = 2
         mock_audio.get_device_info_by_index.side_effect = [
             {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
-            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+            {
+                "name": "Speakers",
+                "maxInputChannels": 0,
+                "maxOutputChannels": 2,
+                "defaultSampleRate": 48000.0,
+                "defaultOutputDevice": True,
+            },
         ]
+
         def open_side_effect(*args, **kwargs):
             if kwargs.get("input"):
                 return mock_input_stream
             if kwargs.get("output"):
                 return mock_output_stream
+
         mock_audio.open.side_effect = open_side_effect
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
         handler.start_passthrough(input_device_index=0)
         import time
+
         time.sleep(0.1)  # Let thread run
         self.assertFalse(handler.is_running)
         handler.stop_passthrough()
@@ -384,13 +433,21 @@ class TestAudioHandler(unittest.TestCase):
         mock_audio.get_device_count.return_value = 2
         mock_audio.get_device_info_by_index.side_effect = [
             {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
-            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+            {
+                "name": "Speakers",
+                "maxInputChannels": 0,
+                "maxOutputChannels": 2,
+                "defaultSampleRate": 48000.0,
+                "defaultOutputDevice": True,
+            },
         ]
+
         def open_side_effect(*args, **kwargs):
             if kwargs.get("input"):
                 return mock_input_stream
             if kwargs.get("output"):
                 return mock_output_stream
+
         mock_audio.open.side_effect = open_side_effect
         mock_pyaudio_class.return_value = mock_audio
         handler = AudioHandler()
@@ -401,8 +458,8 @@ class TestAudioHandler(unittest.TestCase):
         mock_output_stream.stop_stream.assert_called()
         mock_output_stream.close.assert_called()
         mock_audio.terminate.assert_called()
-        self.assertIsNone(getattr(handler, 'input_stream', None))
-        self.assertIsNone(getattr(handler, 'output_stream', None))
+        self.assertIsNone(getattr(handler, "input_stream", None))
+        self.assertIsNone(getattr(handler, "output_stream", None))
         self.assertIsNone(handler.thread)
 
 
