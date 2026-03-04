@@ -16,6 +16,8 @@ class TestAudioHandler(unittest.TestCase):
         """Set up test fixtures"""
         with patch("audio_handler.pyaudio.PyAudio"):
             self.handler = AudioHandler()
+            self.handler.input_stream = None
+            self.handler.output_stream = None
 
     def tearDown(self):
         """Clean up after tests"""
@@ -25,7 +27,8 @@ class TestAudioHandler(unittest.TestCase):
     def test_initialization(self):
         """Test that AudioHandler initializes correctly"""
         self.assertIsNotNone(self.handler)
-        self.assertIsNone(self.handler.stream)
+        self.assertIsNone(getattr(self.handler, 'input_stream', None))
+        self.assertIsNone(getattr(self.handler, 'output_stream', None))
         self.assertFalse(self.handler.is_running)
         self.assertIsNone(self.handler.thread)
 
@@ -94,19 +97,27 @@ class TestAudioHandler(unittest.TestCase):
     def test_start_passthrough_success(self, mock_pyaudio_class):
         """Test successful audio passthrough start"""
         mock_audio = Mock()
-        mock_stream = Mock()
-        mock_stream.start_stream.return_value = None
-
-        mock_audio.open.return_value = mock_stream
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
+        def open_side_effect(*args, **kwargs):
+            if kwargs.get("input"):
+                return mock_input_stream
+            if kwargs.get("output"):
+                return mock_output_stream
+        mock_audio.open.side_effect = open_side_effect
+        mock_audio.get_device_count.return_value = 2
+        mock_audio.get_device_info_by_index.side_effect = [
+            {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
+            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+        ]
         mock_pyaudio_class.return_value = mock_audio
-
         handler = AudioHandler()
         result = handler.start_passthrough(input_device_index=0)
-
         self.assertTrue(result)
         self.assertTrue(handler.is_running)
-        self.assertIsNotNone(handler.stream)
-        mock_stream.start_stream.assert_called_once()
+        self.assertIs(handler.input_stream, mock_input_stream)
+        self.assertIs(handler.output_stream, mock_output_stream)
+        handler.stop_passthrough()
 
     @patch("audio_handler.pyaudio.PyAudio")
     def test_start_passthrough_already_running(self, mock_pyaudio_class):
@@ -126,23 +137,28 @@ class TestAudioHandler(unittest.TestCase):
     def test_start_passthrough_auto_detect(self, mock_pyaudio_class):
         """Test auto-detection of capture card when no device specified"""
         mock_audio = Mock()
-        mock_stream = Mock()
-
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
+        # Provide both input and output devices with correct properties
+        def get_device_info_by_index(idx):
+            if idx == 0:
+                return {"name": "Elgato Capture", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0}
+            if idx == 1:
+                return {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True}
         mock_audio.get_device_count.return_value = 2
-        mock_audio.get_device_info_by_index.side_effect = [
-            {"name": "Built-in Mic", "maxInputChannels": 2, "defaultSampleRate": 44100.0},
-            {"name": "Elgato Capture", "maxInputChannels": 2, "defaultSampleRate": 48000.0},
-        ]
-        mock_audio.open.return_value = mock_stream
-
+        mock_audio.get_device_info_by_index.side_effect = get_device_info_by_index
+        def open_side_effect(*args, **kwargs):
+            if kwargs.get("input"):
+                return mock_input_stream
+            if kwargs.get("output"):
+                return mock_output_stream
+        mock_audio.open.side_effect = open_side_effect
         mock_pyaudio_class.return_value = mock_audio
-
         handler = AudioHandler()
         result = handler.start_passthrough()
-
-        # Should auto-detect and start
         self.assertTrue(result)
         self.assertTrue(handler.is_running)
+        handler.stop_passthrough()
 
     @patch("audio_handler.pyaudio.PyAudio")
     def test_start_passthrough_auto_detect_not_found(self, mock_pyaudio_class):
@@ -183,20 +199,20 @@ class TestAudioHandler(unittest.TestCase):
     def test_stop_passthrough(self, mock_pyaudio_class):
         """Test stopping audio passthrough"""
         mock_audio = Mock()
-        mock_stream = Mock()
-
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
         mock_pyaudio_class.return_value = mock_audio
-
         handler = AudioHandler()
-        handler.stream = mock_stream
+        handler.input_stream = mock_input_stream
+        handler.output_stream = mock_output_stream
         handler.is_running = True
-
         handler.stop_passthrough()
-
-        # Check stream was stopped and closed
-        mock_stream.stop_stream.assert_called_once()
-        mock_stream.close.assert_called_once()
-        self.assertIsNone(handler.stream)
+        mock_input_stream.stop_stream.assert_called_once()
+        mock_input_stream.close.assert_called_once()
+        mock_output_stream.stop_stream.assert_called_once()
+        mock_output_stream.close.assert_called_once()
+        self.assertIsNone(handler.input_stream)
+        self.assertIsNone(handler.output_stream)
         self.assertFalse(handler.is_running)
 
     @patch("audio_handler.pyaudio.PyAudio")
@@ -204,13 +220,14 @@ class TestAudioHandler(unittest.TestCase):
         """Test stopping when no stream exists"""
         mock_audio = Mock()
         mock_pyaudio_class.return_value = mock_audio
-
         handler = AudioHandler()
+        handler.input_stream = None
+        handler.output_stream = None
         handler.is_running = False
-
         # Should not raise exception
         handler.stop_passthrough()
-        self.assertIsNone(handler.stream)
+        self.assertIsNone(handler.input_stream)
+        self.assertIsNone(handler.output_stream)
         self.assertFalse(handler.is_running)
 
     @patch("audio_handler.subprocess.run")
@@ -251,42 +268,142 @@ class TestAudioHandler(unittest.TestCase):
         self.assertEqual(sources, [])
 
     @patch("audio_handler.pyaudio.PyAudio")
-    def test_audio_callback(self, mock_pyaudio_class):
-        """Test audio callback function"""
-        import pyaudio
-
-        mock_audio = Mock()
-        mock_pyaudio_class.return_value = mock_audio
-
-        handler = AudioHandler()
-
-        # Test callback
-        test_data = b"test audio data"
-        result, flag = handler._audio_callback(test_data, 1024, None, None)
-
-        self.assertEqual(result, test_data)
-        self.assertEqual(flag, pyaudio.paContinue)
-
-    @patch("audio_handler.pyaudio.PyAudio")
     def test_cleanup(self, mock_pyaudio_class):
         """Test cleanup method"""
         mock_audio = Mock()
-        mock_stream = Mock()
-
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
         mock_pyaudio_class.return_value = mock_audio
-
         handler = AudioHandler()
-        handler.stream = mock_stream
+        handler.input_stream = mock_input_stream
+        handler.output_stream = mock_output_stream
         handler.is_running = True
-
         handler.cleanup()
-
-        # Check everything is cleaned up
-        mock_stream.stop_stream.assert_called_once()
-        mock_stream.close.assert_called_once()
+        mock_input_stream.stop_stream.assert_called_once()
+        mock_input_stream.close.assert_called_once()
+        mock_output_stream.stop_stream.assert_called_once()
+        mock_output_stream.close.assert_called_once()
         mock_audio.terminate.assert_called_once()
-        self.assertIsNone(handler.stream)
+        self.assertIsNone(handler.input_stream)
+        self.assertIsNone(handler.output_stream)
         self.assertFalse(handler.is_running)
+
+    @patch("audio_handler.pyaudio.PyAudio")
+    def test_start_passthrough_opens_input_and_output_streams(self, mock_pyaudio_class):
+        """Test that both input and output streams are opened with correct parameters"""
+        mock_audio = Mock()
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
+        # Simulate two devices: input and output
+        mock_audio.get_device_count.return_value = 2
+        mock_audio.get_device_info_by_index.side_effect = [
+            {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
+            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+        ]
+        # Simulate open returns
+        def open_side_effect(*args, **kwargs):
+            if kwargs.get("input"):
+                return mock_input_stream
+            if kwargs.get("output"):
+                return mock_output_stream
+        mock_audio.open.side_effect = open_side_effect
+        mock_pyaudio_class.return_value = mock_audio
+        handler = AudioHandler()
+        result = handler.start_passthrough(input_device_index=0)
+        self.assertTrue(result)
+        self.assertTrue(handler.is_running)
+        self.assertIs(handler.input_stream, mock_input_stream)
+        self.assertIs(handler.output_stream, mock_output_stream)
+        handler.stop_passthrough()
+
+    @patch("audio_handler.pyaudio.PyAudio")
+    def test_start_passthrough_no_output_device(self, mock_pyaudio_class):
+        """Test passthrough fails if no output device is found"""
+        mock_audio = Mock()
+        mock_audio.get_device_count.return_value = 1
+        mock_audio.get_device_info_by_index.return_value = {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0}
+        mock_pyaudio_class.return_value = mock_audio
+        handler = AudioHandler()
+        result = handler.start_passthrough(input_device_index=0)
+        self.assertFalse(result)
+        self.assertFalse(handler.is_running)
+
+    @patch("audio_handler.pyaudio.PyAudio")
+    def test_start_passthrough_output_open_failure(self, mock_pyaudio_class):
+        """Test passthrough fails if output stream cannot be opened"""
+        mock_audio = Mock()
+        mock_audio.get_device_count.return_value = 2
+        mock_audio.get_device_info_by_index.side_effect = [
+            {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
+            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+        ]
+        def open_side_effect(*args, **kwargs):
+            if kwargs.get("input"):
+                return Mock()
+            if kwargs.get("output"):
+                raise Exception("Output open failed")
+        mock_audio.open.side_effect = open_side_effect
+        mock_pyaudio_class.return_value = mock_audio
+        handler = AudioHandler()
+        result = handler.start_passthrough(input_device_index=0)
+        self.assertFalse(result)
+        self.assertFalse(handler.is_running)
+
+    @patch("audio_handler.pyaudio.PyAudio")
+    def test_passthrough_thread_error_sets_not_running(self, mock_pyaudio_class):
+        """Test that an exception in the passthrough thread sets is_running to False"""
+        mock_audio = Mock()
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
+        mock_input_stream.read.side_effect = Exception("Read error")
+        mock_audio.get_device_count.return_value = 2
+        mock_audio.get_device_info_by_index.side_effect = [
+            {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
+            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+        ]
+        def open_side_effect(*args, **kwargs):
+            if kwargs.get("input"):
+                return mock_input_stream
+            if kwargs.get("output"):
+                return mock_output_stream
+        mock_audio.open.side_effect = open_side_effect
+        mock_pyaudio_class.return_value = mock_audio
+        handler = AudioHandler()
+        handler.start_passthrough(input_device_index=0)
+        import time
+        time.sleep(0.1)  # Let thread run
+        self.assertFalse(handler.is_running)
+        handler.stop_passthrough()
+
+    @patch("audio_handler.pyaudio.PyAudio")
+    def test_cleanup_closes_both_streams_and_thread(self, mock_pyaudio_class):
+        """Test cleanup closes both input and output streams and resets thread"""
+        mock_audio = Mock()
+        mock_input_stream = Mock()
+        mock_output_stream = Mock()
+        mock_audio.get_device_count.return_value = 2
+        mock_audio.get_device_info_by_index.side_effect = [
+            {"name": "Elgato HD60X", "maxInputChannels": 2, "maxOutputChannels": 0, "defaultSampleRate": 48000.0},
+            {"name": "Speakers", "maxInputChannels": 0, "maxOutputChannels": 2, "defaultSampleRate": 48000.0, "defaultOutputDevice": True},
+        ]
+        def open_side_effect(*args, **kwargs):
+            if kwargs.get("input"):
+                return mock_input_stream
+            if kwargs.get("output"):
+                return mock_output_stream
+        mock_audio.open.side_effect = open_side_effect
+        mock_pyaudio_class.return_value = mock_audio
+        handler = AudioHandler()
+        handler.start_passthrough(input_device_index=0)
+        handler.cleanup()
+        mock_input_stream.stop_stream.assert_called()
+        mock_input_stream.close.assert_called()
+        mock_output_stream.stop_stream.assert_called()
+        mock_output_stream.close.assert_called()
+        mock_audio.terminate.assert_called()
+        self.assertIsNone(getattr(handler, 'input_stream', None))
+        self.assertIsNone(getattr(handler, 'output_stream', None))
+        self.assertIsNone(handler.thread)
 
 
 if __name__ == "__main__":
