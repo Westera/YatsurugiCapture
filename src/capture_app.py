@@ -509,6 +509,7 @@ class CaptureWindow(QMainWindow):
     def closeEvent(self, event):
         """Clean up when closing the window"""
         self.stop_capture()
+        self.audio_handler.stop_passthrough()  # Always explicitly stop passthrough
         self.audio_handler.cleanup()
         event.accept()
 
